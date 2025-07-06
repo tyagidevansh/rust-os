@@ -11,10 +11,16 @@ use rust_os::serial_println;
 // entry point of the program
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    println!("hello world!!!!!!!!!");
-    serial_println!("main main main");   
+    println!("hello world!!");
+    
+    rust_os::init();
+
+    x86_64::instructions::interrupts::int3();
+
     #[cfg(test)]
     test_main();
+
+    println!("it did not crash!");
 
     loop {}
 }
