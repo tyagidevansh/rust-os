@@ -6,7 +6,6 @@
 
 use core::panic::PanicInfo;
 use rust_os::println;
-use rust_os::serial_println;
 
 // entry point of the program
 #[unsafe(no_mangle)]
@@ -21,26 +20,26 @@ pub extern "C" fn _start() -> ! {
         stack_overflow();
     }
 
-    stack_overflow();
+    //stack_overflow();
 
     //trigger a page fault
-    unsafe {
-        *(0xdeadbeef as *mut u8) = 42;
-    };
+    //unsafe {
+      //  *(0xdeadbeef as *mut u8) = 42;
+    //};
 
     #[cfg(test)]
     test_main();
 
     println!("it did not crash!");
 
-    loop {}
+    rust_os::hlt_loop();
 }
 
 #[cfg(not(test))] // conditional compilation
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    rust_os::hlt_loop();
 }
 
 #[cfg(test)]
