@@ -6,32 +6,42 @@
 
 use core::panic::PanicInfo;
 use rust_os::println;
+use bootloader::{BootInfo, entry_point};
+use  x86_64::structures::paging::PageTable;
+use rust_os::memory::active_level_4_table;
+use x86_64::VirtAddr;
 
-// entry point of the program
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
-    println!("hello world!!");
-    
+entry_point!(kernel_main);
+
+fn kernel_main(boot_info: &'static BootInfo) -> ! {
+    println!("Hello World{}", "!");
     rust_os::init();
 
-    //x86_64::instructions::interrupts::int3();
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let l4_table = unsafe { active_level_4_table(phys_mem_offset) };
 
-    fn stack_overflow() {
-        stack_overflow();
+    for (i, entry) in l4_table.iter().enumerate() {
+        if !entry.is_unused() {
+            println!("L4 Entry {}: {:?}", i, entry);
+
+            // get the physical address from the entry and convert it
+            let phys = entry.frame().unwrap().start_address();
+            let virt = phys.as_u64() + boot_info.physical_memory_offset;
+            let ptr = VirtAddr::new(virt).as_mut_ptr();
+            let l3_table: &PageTable = unsafe { &*ptr };
+
+            for (i, entry) in l3_table.iter().enumerate() {
+                if !entry.is_unused() {
+                    println!("  L3 Entry {} : {:?}", i, entry);
+                }
+            }
+        }
     }
-
-    //stack_overflow();
-
-    //trigger a page fault
-    //unsafe {
-      //  *(0xdeadbeef as *mut u8) = 42;
-    //};
 
     #[cfg(test)]
     test_main();
 
-    println!("it did not crash!");
-
+    println!("It did not crash!");
     rust_os::hlt_loop();
 }
 
