@@ -7,11 +7,14 @@
 
 use core::panic::PanicInfo;
 
+extern crate alloc;
+
 pub mod gdt;
 pub mod interrupts;
 pub mod memory;
 pub mod serial;
 pub mod vga_buffer;
+pub mod allocator;
 
 pub fn init() {
     gdt::init();

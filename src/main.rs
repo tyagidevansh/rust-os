@@ -8,9 +8,13 @@ use rust_os::println;
 use bootloader::{BootInfo, entry_point};
 use core::panic::PanicInfo;
 
+extern crate alloc;
+use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
+
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
+    use rust_os::allocator;
     use rust_os::memory::{self, BootInfoFrameAllocator};
     use x86_64::{VirtAddr, structures::paging::Page};
 
@@ -29,8 +33,26 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
     unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e) };
 
-    #[cfg(test)]
-    test_main();
+    allocator::init_heap(&mut mapper, &mut frame_allocator)
+        .expect("heap initialization failed");
+
+    let x = Box::new(41);
+    println!("heap value at {:p}", x);
+
+    let mut vec = Vec::new();
+    for i in 0..500 {
+        vec.push(i);
+    }
+    println!("vec at {:p}", vec.as_slice());
+
+    let reference_counted = Rc::new(vec![1, 2, 3]);
+    let cloned_reference = reference_counted.clone();
+    println!("current reference count is {}", Rc::strong_count(&cloned_reference));
+    core::mem::drop(reference_counted);
+    println!("reference count is {} now", Rc::strong_count(&cloned_reference));
+
+    //#[cfg(test)]
+    //test_main();
 
     println!("It did not crash!");
     rust_os::hlt_loop();
